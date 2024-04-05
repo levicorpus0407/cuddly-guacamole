@@ -1,0 +1,107 @@
+[compile]
+cd Prometheus
+./compile_mission.sh
+./compile_detection.sh
+./compile_control.sh
+
+[launch nodes]
+> static landing
+roslaunch prometheus_gazebo sitl_static_landing_vs.launch
+> moving landing
+roslaunch prometheus_gazebo sitl_vs_landing.launch
+rosrun prometheus_gazebo vs_moving.py
+rosrun prometheus_gazebo vs_stopping.py
+
+[record data]
+rosbag record -O trial3.bag /prometheus/drone_state
+rosbag record -O trial4_error_0707.bag /vs/error
+rosbag record -O trial4_droneState_0707.bag /prometheus/ground_truth/p300_basic
+rosbag record -O trials2_targetState.bag /ground_truth/diff
+
+[play data]
+rosbag play <__.bag>
+
+[replay video] [kazam]
+ffplay <__.mp4>
+
+[steps]
+> moving landing - target moves with linear motion / moves with circumferential motion
+1. start kazam to record the screen
+2. roslaunch prometheus_gazebo sitl_vs_landing.launch / roslaunch prometheus_gazebo sitl_pbvs_landing.launch
+3. rosbag record -O trial3_target.bag /ground_truth/diff
+4. rosbag record -O trial3.bag /prometheus/ground_truth/p300_basic
+5. rosbag record -O trial3_error.bag /vs/error
+6. rosrun prometheus_gazebo vs_moving.py 
+7. input 1 to start the drone to its predefined position 
+8. ctrl c to terminate the python node
+9. rosrun prometheus_gazebo vs_stopping.py
+10. stop rosbag recording as soon as the drone lands on the target
+11. stop screen recording
+12. check the terminal and record the x, y position for the drone and the target, respectively
+
+
+rostopic echo /ground_truth/diff <terminal 3-1>
+rostopic echo /prometheus/ground_truth/p300_basic <terminal 3-2>
+rosbag record -O trial2.bag /prometheus/drone_state <terminal 3-3>
+
+
+[bulldog communication with ubuntu]
+1. hidden files ./bashrc adds:
+export ROS_HOSTNAME=192.168.1.126
+export ROS_MASTER_URI=http://192.168.1.30
+2. connect to bulldog wifi password: shansu606
+BD-202008001-5.8G
+3. ping 192.168.1.30
+4. 登陆NUC后台ssh shansu@192.168.1.30 password: 123
+5. cd ~/catkin_ws/src/bulldog_navigation/script
+6. vim bulldog_moving.py
+7. i(insert) --> edit --> Esc --> :wq(save and exit)
+8. ./bulldog_moving.py 
+9. cd root1/data
+10. rosbag record -O bulldog_odom_trial2_220124.bag /bulldog_velocity_controller/odom
+11. ctrl+c to stop the vehicle
+12. scp -r shansu@192.168.1.30:/home/shansu/root1/data /home/zixuanxu/root1
+
+
+[record detection data] estimated pose and ground thruth
+rosbag record -O trial7_stationary.bag /cv/detection
+rosbag record -O trial7_linear.bag /cv/detection
+rosbag record -O trial7_circumferential.bag /cv/detection
+
+[record data of ugv navigation + uav landing]
+roslaunch prometheus_gazebo sitl_nav2_ugv_land_uav.launch
+rosbag record -O trial3_nav.bag /cv/detection
+rosbag record -O trial3_error.bag /vs/error
+rosbag record -O trial3_drone_gt.bag /prometheus/ground_truth/p300_basic
+rosbag record -O trial3_vehicle_gt.bag /ground_truth/diff
+
+
+[path planning]
+rosbag record -O trial10_apf_drone.bag /prometheus/ground_truth/p300_basic
+rosbag record -O trial11_sapf_drone.bag /prometheus/ground_truth/p300_basic
+
+[sapf path planning + pbvs landing on stationary target]
+roslaunch prometheus_gazebo uav_planning_pbvs_landing.launch 
+rosbag record -O trial6s_dState.bag /prometheus/ground_truth/p300_basic
+
+
+[sapf path planning + pbvs landing on moving target]
+roslaunch prometheus_gazebo uav_planning_pbvs_landing.launch
+
+[record data of the target with stationary motion]
+rosbag record -O trial5_drone_stationary_apf.bag /prometheus/ground_truth/p300_basic
+rosbag record -O trial5_error_stationary_sapf.bag /vs/error
+
+[record data of the target with linear motion]
+rosbag record -O trial5_drone_linear.bag /prometheus/ground_truth/p300_basic
+rosbag record -O trial5_target_linear.bag /ground_truth/diff
+rosbag record -O trial5_error_linear.bag /vs/error
+
+[record data of the target with circumferential motion]
+rosbag record -O trial6_drone_circumferentail.bag /prometheus/ground_truth/p300_basic
+rosbag record -O trial6_target_circumferential.bag /ground_truth/diff
+rosbag record -O trial6_error_circumferential.bag /vs/error
+
+[rosrun ugv]
+rosrun prometheus_gazebo vs_moving.py
+rosrun prometheus_gazebo vs_stopping.py
