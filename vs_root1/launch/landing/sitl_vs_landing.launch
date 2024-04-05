@@ -1,0 +1,133 @@
+<launch>
+
+    <!-- Launch Gazebo Simulation -->
+	<arg name="x" default="0.0"/>
+    <arg name="y" default="0.0"/>
+	<!--arg name="y" default="-2.4"/-->
+    <arg name="z" default="0.05"/>
+	<!--arg name="z" default="0.05"/-->
+	<!--arg name="x" default="2.0"/>
+    <arg name="y" default="2.0"/>
+    <arg name="z" default="0.05"/-->
+	<!-- for experiments -->
+	<!--arg name="x" default="-0.6"/>
+    <arg name="y" default="-1.6"/>
+    <arg name="z" default="0.05"/-->
+	<!-- arg name="world" default="$(find prometheus_gazebo)/worlds/landing_pad.world"/-->
+	<!-- arg name="world" default="$(find prometheus_gazebo)/worlds/autonomous_landing.world"/-->
+	<arg name="world" default="$(find prometheus_gazebo)/worlds/vs_landing_world.world"/>
+	<!-- root1 test walk.world on 190324 -->
+	<!--arg name="world" value="$(find prometheus_gazebo)/worlds/walk.world"/-->
+	<arg name="sdf" default="$(find prometheus_gazebo)/amov_models/p450_monocular/p450_monocular.sdf"/>
+	<arg name="model" default="p450_monocular"/>
+    <include file="$(find prometheus_gazebo)/launch_basic/sitl.launch">
+	  <arg name="world" value="$(arg world)"/>
+	  <arg name="sdf" value="$(arg sdf)"/>
+	  <arg name="model" value="$(arg model)"/>
+      <arg name="x" value="$(arg x)"/>
+      <arg name="y" value="$(arg y)"/>
+      <arg name="z" value="$(arg z)"/>
+    </include>
+
+	<!--include file="$(find husky_gazebo)/launch/spawn_husky.launch">
+	<arg name="x" value="0.0"/>
+	<arg name="y" value="-1.6"/>
+	<arg name="z" value="0.0"/>
+    </include-->
+
+	<!-- differential robot -->
+	<!-- urdf xml robot description loaded on the Parameter Server-->
+    <param name="robot_description" command="$(find xacro)/xacro $(find prometheus_gazebo)/models/diff_robot/urdf/diff_wheeled_robot.xacro" />
+
+    <!-- Run a python script to the send a service call to gazebo_ros to spawn a URDF robot -->
+    <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" respawn="false" output="screen"
+	args="-urdf -model diff_wheeled_robot -param robot_description -x 0.0 -y -1.6 -z 0.0"/>
+
+
+	<!-- run the landpad_det2.cpp -->
+    <node pkg="prometheus_detection" type="landpad_det2" name="landpad_det2" output="screen">
+        <param name="camera_topic" type="string" value="/prometheus/sensor/monocular_down/image_raw" />
+        <param name="camera_info" type="string" value="$(find prometheus_gazebo)/config/camera_config/camera_param_gazebo_monocular.yaml" />
+    </node>
+
+    <!-- run the vs_landing.cpp -->
+    <node pkg="prometheus_mission" type="vs_landing" name="vs_landing" output="screen" launch-prefix="gnome-terminal --">
+        <!-- 仿真模式 - 区别在于是否自动切换offboard模式 -->
+		<param name="sim_mode" value="true" />
+		<!-- 悬停模式 - 仅用于观察检测结果 -->
+		<param name="hold_mode" value="false" />
+		<!-- 是否使用降落板绝对高度 -->
+		<param name="use_pad_height" value="false" />
+		<!--param name="pad_height" value="0.99" /-->
+		<param name="pad_height" value="0.45" />
+		<!-- 起始点 -->
+		<param name="start_point_x" value="0.0" />
+		<param name="start_point_y" value="0.0" />
+		<param name="start_point_z" value= "4.5" />
+		<!--param name="start_point_x" value="-0.8" /-->
+		<!--param name="start_point_y" value= "-2.4" /-->
+		<!--param name="start_point_y" value= "-2.0" /-->
+		<!-- for experiments -->
+		<!--param name="start_point_x" value="-0.6" />
+		<param name="start_point_y" value="-1.6" /-->
+		<!--param name="start_point_x" value="-0.4" />
+		<param name="start_point_y" value="-2.0" /-->
+		<!--param name="start_point_z" value= "1.2" /-->
+		<!-- 相机安装偏差 -->
+		<param name="camera_offset_x" value="0.05" />
+		<param name="camera_offset_y" value="0.05" />
+		<param name="camera_offset_z" value="-0.1" />
+		<!-- 追踪控制参数 -->
+		<!--param name="arm_height_to_ground" value="0.5" /-->
+		<!--param name="arm_distance_to_pad" value="0.6" /-->
+		<param name="arm_height_to_ground" value="0.25" />
+		<param name="arm_distance_to_pad" value="0.25" />
+		<!-- VS参数 -->
+		<!-- parameters for static_landing on the vehicle -->
+		<!--param name="hd" value="0.15" />
+		<param name="kx_vs" value="1.00" />
+		<param name="ky_vs" value="1.00" />
+		<param name="kz_vs" value="0.33" />
+		<param name="kyaw_vs" value="1.0" />
+		<param name="lambda" value="1.15" />
+		<param name="lambda_0" value="2.5" />
+		<param name="lambda_inf" value="0.85" />
+		<param name="kvt_x" value="0.0" />
+		<param name="kvt_y" value="0.0" />
+		<param name="kvt_z" value="0.0" />
+		<param name="kvt_w" value="0.0" /-->
+		<!-- parameters for moving in straight line -->
+		<param name="hd" value="0.15" />
+		<param name="kx_vs" value="1.0" />
+		<param name="ky_vs" value="1.0" />
+		<param name="kz_vs" value="0.25" />
+		<param name="kyaw_vs" value="1.0" />
+		<param name="lambda" value="1.15" />
+		<param name="lambda_0" value="1.15" />
+		<param name="lambda_inf" value="1.1" />
+		<!--param name="lambda_inf" value="0.9" /-->
+		<!--param name="kvt_x" value="1.4" /-->
+		<param name="kvt_x" value="1.8" />
+		<param name="kvt_y" value="1.0" />
+		<param name="kvt_z" value="1.0" />
+		<param name="kvt_w" value="1.0" />
+		<!-- parameters for moving in circle -->
+		<!--param name="hd" value="0.15" />
+		<param name="kx_vs" value="1.0" />
+		<param name="ky_vs" value="1.0" />
+		<param name="kz_vs" value="0.2" />
+		<param name="kyaw_vs" value="1.0" />
+		<param name="lambda" value="1.1" />
+		<param name="lambda_0" value="2.5" />
+		<param name="lambda_inf" value="1.15" />
+		<param name="kvt_x" value="1.25" />
+		<param name="kvt_y" value="1.25" />
+		<param name="kvt_z" value="1.0" />
+		<param name="kvt_w" value="1.0" /-->
+		<!-- root1 270623 adds -->
+		<param name="start_move_flag" value="false" />
+		<param name="start_move_distance" value="0.0" />
+		<param name="force_landing_flag" value="false" />
+    </node>
+
+ </launch>
