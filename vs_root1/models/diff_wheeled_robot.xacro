@@ -1,0 +1,574 @@
+<?xml version="1.0"?>
+<robot name="differential_wheeled_robot" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  
+
+  <xacro:include filename="$(find prometheus_gazebo)/models/diff_robot/urdf/wheel.urdf.xacro" />
+
+<!-- Defining the colors used in this robot -->
+  <material name="Black">
+    <color rgba="0.0 0.0 0.0 1.0"/>
+  </material>
+
+  <material name="Red">
+    <color rgba="0.8 0.0 0.0 1.0"/>
+  </material>
+
+  <material name="White">
+    <color rgba="1.0 1.0 1.0 1.0"/>
+  </material>
+
+
+  <material name="Blue">
+    <color rgba="0.0 0.0 0.8 1.0"/>
+  </material>
+
+  <!-- xacro:PROPERTY LIST -->
+  <!--All units in m-kg-s-radians unit system -->
+  <xacro:property name="M_PI" value="3.1415926535897931" />
+  <xacro:property name="M_PI_2" value="1.570796327" />
+  <xacro:property name="DEG_TO_RAD" value="0.017453293" />
+
+  <!-- Main body radius and height -->
+  <!-- Main Body Cylinder base   -->
+  <!-- root1 modifies -->
+  <xacro:property name="base_height" value="0.02" />
+  <!--xacro:property name="base_radius" value="0.15" /-->
+  <xacro:property name="base_radius" value="0.4" />
+  <xacro:property name="base_mass" value="5" /> <!-- in kg-->
+
+  <!-- root1 adds support -->
+    <!-- root1 changes for the experiments -->
+    <!--xacro:property name="support_length" value="0.42" /-->
+    <xacro:property name="support_length" value="0.01" />
+    <xacro:property name="support_radius" value="0.02" />
+    <xacro:property name="support_x" value="0.0" />
+    <xacro:property name="support_y" value="0.0" /> 
+    <xacro:property name="support_z" value="${base_height / 2 + support_length / 2}" /> 
+    <xacro:property name="support_m" value="0.02" /> 
+
+    <xacro:property name="support_x1" value="0.27" />
+    <xacro:property name="support_y1" value="0.00" /> 
+    <xacro:property name="support_x2" value="-0.135" />
+    <xacro:property name="support_y2" value="-0.2338269" /> 
+    <xacro:property name="support_x3" value="-0.135" />
+    <xacro:property name="support_y3" value="0.2338269" />
+
+  <!-- root1 adds landing pad -->
+  <xacro:property name="pad_h" value="0.01" />
+  <xacro:property name="pad_z" value="${support_length / 2 + pad_h / 2}" /> 
+
+  <!-- caster wheel radius and height -->
+  <!-- caster wheel mass -->
+  <xacro:property name="caster_f_height" value="0.04" />
+  <xacro:property name="caster_f_radius" value="0.025" />
+  <xacro:property name="caster_f_mass" value="0.5" /> <!-- in kg-->
+
+  <!-- caster wheel radius and height -->
+  <!-- caster wheel mass -->
+  <xacro:property name="caster_b_height" value="0.04" />
+  <xacro:property name="caster_b_radius" value="0.025" />
+  <xacro:property name="caster_b_mass" value="0.5" /> <!-- in kg-->
+
+
+  <!-- Wheels -->
+
+  <xacro:property name="wheel_mass" value="2.5" /> --> <!-- in kg-->
+  
+  <!-- root1 modifies -->
+  <!--xacro:property name="base_x_origin_to_wheel_origin" value="0.25" /-->
+  <!--xacro:property name="base_y_origin_to_wheel_origin" value="0.3" /-->
+  <xacro:property name="base_x_origin_to_wheel_origin" value="0.8" />
+  <xacro:property name="base_y_origin_to_wheel_origin" value="0.8" />
+  <xacro:property name="base_z_origin_to_wheel_origin" value="0.0" />
+
+
+  <!-- Hokuyo Laser scanner -->
+  <xacro:property name="hokuyo_size" value="0.05" />
+
+  <!-- Macro for calculating inertia of cylinder -->
+  <xacro:macro name="cylinder_inertia" params="m r h">
+    <inertia  ixx="${m*(3*r*r+h*h)/12}" ixy = "0" ixz = "0"
+              iyy="${m*(3*r*r+h*h)/12}" iyz = "0"
+              izz="${m*r*r/2}" /> 
+  </xacro:macro>
+
+
+  <!-- BASE-FOOTPRINT -->
+  <!-- base_footprint is a fictitious link(frame) that is on the ground right below base_link origin -->
+  <link name="base_footprint">
+    <inertial>
+      <mass value="0.0001" />
+      <origin xyz="0 0 0" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0"
+          iyy="0.0001" iyz="0.0" 
+          izz="0.0001" />
+    </inertial>
+    <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+            <box size="0.001 0.001 0.001" />
+        </geometry>
+    </visual>
+  </link>
+
+  <gazebo reference="base_footprint">
+    <turnGravityOff>false</turnGravityOff>
+  </gazebo>
+
+  <joint name="base_footprint_joint" type="fixed">
+    <origin xyz="0 0 ${wheel_radius - base_z_origin_to_wheel_origin}" rpy="0 0 0" />
+    <parent link="base_footprint"/>
+    <child link="base_link1" />
+  </joint>
+  
+  <!-- BASE-LINK -->
+  <!--Actual body/chassis of the robot-->
+  <link name="base_link1">
+    <inertial>
+      <mass value="${base_mass}" />
+      <origin xyz="0 0 0" />
+      <!--The 3x3 rotational inertia matrix. -->
+      <xacro:cylinder_inertia  m="${base_mass}" r="${base_radius}" h="${base_height}" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0"
+               iyy="0.0001" iyz="0.0"
+               izz="0.0001" />
+    </inertial>    
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+          <cylinder length="${base_height}" radius="${base_radius}" />
+      </geometry>
+      <material name="White" />
+    </visual>  
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0 " />
+      <geometry>
+          <cylinder length="${base_height}" radius="${base_radius}" />
+      </geometry>
+    </collision>     
+  </link>
+  <gazebo reference="base_link1">
+    <material>Gazebo/White</material>
+    <turnGravityOff>false</turnGravityOff>
+  </gazebo>
+
+
+<!--Caster front  -->
+    <link name="caster_front_link">
+    <visual>
+      <origin xyz="0 0.02 0" rpy="${M_PI/2} 0 0" />
+      <geometry>
+	<sphere radius="${caster_f_radius}" />
+      </geometry>
+      <material name="Black" />
+    </visual>  
+      <collision>
+        <geometry>
+	<sphere radius="${caster_f_radius}" />
+        </geometry>
+      <origin xyz="0 0.02 0" rpy="${M_PI/2} 0 0" />
+      </collision>      
+      <inertial>
+        <mass value="${caster_f_mass}" />
+        <origin xyz="0 0 0" />
+        <inertia ixx="0.001" ixy="0.0" ixz="0.0"
+                 iyy="0.001" iyz="0.0" 
+                 izz="0.001" />
+      </inertial>
+    </link>
+
+
+
+ <joint name="caster_front_joint" type="fixed">
+      <parent link="base_link1"/>
+      <child link="caster_front_link"/>
+      <origin xyz="0.115 0.0 0.007" rpy="${-M_PI/2} 0 0"/>
+    </joint>
+
+
+  <gazebo reference="caster_front_link">
+    <turnGravityOff>false</turnGravityOff>
+  </gazebo>
+    
+
+<!--Caster back  -->
+
+    <link name="caster_back_link">
+    <visual>
+      <origin xyz="0.02 0.02 0 " rpy="${M_PI/2} 0 0" /> 
+      <geometry>
+	<sphere radius="${caster_b_radius}" />
+      </geometry>
+      <material name="Black" />
+    </visual>  
+      <collision>
+        <geometry>
+		<sphere radius="${caster_b_radius}" />
+        </geometry>
+      <origin xyz="0 0.02 0 " rpy="${M_PI/2} 0 0" /> 
+      </collision>      
+      <inertial>
+        <mass value="${caster_b_mass}" />
+        <origin xyz="0 0 0" />        
+        <inertia ixx="0.001" ixy="0.0" ixz="0.0"
+                 iyy="0.001" iyz="0.0" 
+                 izz="0.001" />
+      </inertial>
+    </link>
+
+    <joint name="caster_back_joint" type="fixed">
+      <parent link="base_link1"/>
+      <child link="caster_back_link"/>
+      <origin xyz="-0.135 0.0 0.009" rpy="${-M_PI/2} 0 0"/>
+    </joint>
+
+
+  <gazebo reference="caster_back_link">
+    <turnGravityOff>false</turnGravityOff>
+  </gazebo>
+
+
+<!-- Wheel Definitions -->
+
+  <xacro:wheel fb="front" lr="right" parent="base_link1" translateX="0" translateY="-0.5" flipY="-1"/>
+  <xacro:wheel fb="front" lr="left" parent="base_link1" translateX="0" translateY="0.5" flipY="-1"/>
+
+<!-- support link -->
+<link name="support">
+      <visual>
+          <geometry>
+              <cylinder radius="${support_radius}" length="${support_length}" />
+          </geometry>
+          <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+          <material name="white">
+              <color rgba="1.0 1.0 1.0 0.1" />
+          </material>
+      </visual>
+
+      <collision>
+          <geometry>
+              <cylinder radius="${support_radius}" length="${support_length}" />
+          </geometry>
+          <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      </collision>
+
+      <xacro:cylinder_inertia m="${support_m}" r="${support_radius}" h="${support_length}" />
+
+  </link>
+
+  <joint name="support_2_base_link" type="fixed">
+      <parent link="base_link1" />
+      <child link="support" />
+      <origin xyz="${support_x} ${support_y} ${support_z}" />
+  </joint>
+
+  <gazebo reference="support">
+      <material>Gazebo/White</material>
+  </gazebo>
+
+<!-- support link1 -->
+<link name="support1">
+      <visual>
+          <geometry>
+              <cylinder radius="${support_radius}" length="${support_length}" />
+          </geometry>
+          <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+          <material name="black">
+              <color rgba="0.0 0.0 0.0 1.0" />
+          </material>
+      </visual>
+
+      <collision>
+          <geometry>
+              <cylinder radius="${support_radius}" length="${support_length}" />
+          </geometry>
+          <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      </collision>
+
+      <xacro:cylinder_inertia m="${support_m}" r="${support_radius}" h="${support_length}" />
+
+  </link>
+
+  <joint name="support1_2_base_link" type="fixed">
+      <parent link="base_link1" />
+      <child link="support1" />
+      <origin xyz="${support_x1} ${support_y1} ${support_z}" />
+  </joint>
+
+  <gazebo reference="support1">
+      <material>Gazebo/Black</material>
+  </gazebo>
+
+  <!-- support link 2 -->
+  <link name="support2">
+      <visual>
+          <geometry>
+              <cylinder radius="${support_radius}" length="${support_length}" />
+          </geometry>
+          <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+          <material name="black">
+              <color rgba="0.0 0.0 0.0 1.0" />
+          </material>
+      </visual>
+
+      <collision>
+          <geometry>
+              <cylinder radius="${support_radius}" length="${support_length}" />
+          </geometry>
+          <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      </collision>
+
+      <xacro:cylinder_inertia m="${support_m}" r="${support_radius}" h="${support_length}" />
+
+  </link>
+
+  <joint name="support2_2_base_link" type="fixed">
+      <parent link="base_link1" />
+      <child link="support2" />
+      <origin xyz="${support_x2} ${support_y2} ${support_z}" />
+  </joint>
+
+  <gazebo reference="support2">
+      <material>Gazebo/Black</material>
+  </gazebo>
+
+  <!-- support link 3 -->
+  <link name="support3">
+      <visual>
+          <geometry>
+              <cylinder radius="${support_radius}" length="${support_length}" />
+          </geometry>
+          <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+          <material name="black">
+              <color rgba="0.0 0.0 0.0 1.0" />
+          </material>
+      </visual>
+
+      <collision>
+          <geometry>
+              <cylinder radius="${support_radius}" length="${support_length}" />
+          </geometry>
+          <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      </collision>
+
+      <xacro:cylinder_inertia m="${support_m}" r="${support_radius}" h="${support_length}" />
+
+  </link>
+
+  <joint name="support3_2_base_link" type="fixed">
+      <parent link="base_link1" />
+      <child link="support3" />
+      <origin xyz="${support_x3} ${support_y3} ${support_z}" />
+  </joint>
+
+  <gazebo reference="support3">
+      <material>Gazebo/Black</material>
+  </gazebo>
+
+  <!--landing pad bad version-->
+  <!--link name="landing_pad_link">
+      <inertial>
+        <mass value="0.2" />
+        <origin xyz = " 0 0 0.00" />
+        <inertia ixx="0.001" ixy= "0.0 " ixz = "0.0" iyy = "0.001" iyz = "0.0" izz = "0.001" />
+      </inertial>
+
+    <visual>
+      <origin xyz="0 0 0.00" rpy="0 0 0" />
+      <geometry>
+        <box size="0.6 0.6 ${pad_h}"/>
+      </geometry>
+    </visual>  
+    <collision>
+      <origin xyz="0 0 0.00" rpy="0 0 0 " />
+      <geometry>
+         <box size="0.6 0.6 {pad_h}"/>
+      </geometry>
+      <surface>
+          <contact>
+            <ode>
+              <min_depth>0.001</min_depth>
+              <max_vel>0</max_vel>
+            </ode>
+          </contact>
+        <friction>
+          <ode>
+            <mu>100</mu>
+            <mu2>100</mu2>
+          </ode>
+        </friction>
+      </surface>
+    </collision>  
+    </link>
+    <gazebo reference = "landing_pad_link">
+      <material>Cube/landing_pad</material>
+      <mu1>100</mu1>
+      <mu2>100</mu2>
+    </gazebo-->
+
+    <link name="landing_pad_link">
+      <visual>
+          <geometry>
+              <box size="0.6 0.6 ${pad_h}"/>
+          </geometry>
+          <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" /> 
+      </visual>
+
+    <collision>
+       <geometry>
+        <box size="0.6 0.6 ${pad_h}"/>
+        <surface>
+          <contact>
+            <ode>
+              <min_depth>0.001</min_depth>
+              <max_vel>0</max_vel>
+            </ode>
+          </contact>
+          <friction>
+            <ode>
+              <mu>150</mu>
+              <mu2>150</mu2>
+            </ode>
+          </friction>
+        </surface>
+      </geometry>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+   </collision>
+
+      <inertial>
+        <!--mass value="0.2" /-->
+        <mass value="0.02" />
+        <origin xyz = " 0 0 0.00" rpy="0.0 0.0 0.0" />
+        <!--root1 modifies on 181023, delete the empty sapce for ixy -->
+        <!--inertia ixx="0.001" ixy= "0.0" ixz = "0.0" iyy = "0.001" iyz = "0.0" izz = "0.001" /-->
+        <inertia ixx="0.0006" ixy= "0.0" ixz = "0.0" iyy = "0.0006" iyz = "0.0" izz = "0.0144" />
+      </inertial>
+    </link>
+    <gazebo reference = "landing_pad_link">
+      <material>Cube/landing_pad</material>
+      <mu1>150</mu1>
+      <mu2>150</mu2>
+    </gazebo>
+
+    <joint name="pad_joint" type="fixed">
+      <parent link="support"/>
+      <child link="landing_pad_link"/>
+      <origin xyz="${support_x} ${support_y} ${pad_z}" rpy="0 0 0" />
+    </joint>
+
+    <!--joint name="pad_joint" type="prismatic">
+      <parent link="support"/>
+      <child link="landing_pad_link"/>
+      <origin xyz="${support_x} ${support_y} ${pad_z}" rpy="0 0 0" />
+      <axis xyz="1 0 0 "/>
+      <limit lower="0.00" upper="0.0001"/>
+      <dynamics damping="3.0"/>
+      <use_parent_model_frame>true</use_parent_model_frame>
+      <physics name="ode">
+        <ode>
+          <cfm_damping>1</cfm_damping>
+        </ode>
+      </physics>
+    </joint-->
+
+    <!--joint name="pad_joint2" type="fixed">
+      <parent link="support2"/>
+      <child link="landing_pad_link"/>
+      <origin xyz="${-support_x2} ${-support_y2} ${pad_z}" rpy="0 0 0" />
+    </joint-->
+
+    <!--joint name="pad_joint3" type="fixed">
+      <parent link="support3"/>
+      <child link="landing_pad_link"/>
+      <origin xyz="${-support_x3} ${-support_y3} ${pad_z}" rpy="0 0 0" />
+    </joint-->
+
+  <!-- SENSORS -->
+  
+  <!-- hokuyo -->
+
+  <link name="hokuyo_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="${hokuyo_size} ${hokuyo_size} ${hokuyo_size}"/>
+      </geometry>
+      <material name="Blue" />
+    </visual>
+  </link>
+  <joint name="hokuyo_joint" type="fixed">
+    <origin xyz="${base_radius - hokuyo_size/2} 0 ${base_height+hokuyo_size/4}" rpy="0 0 0" />
+    <parent link="base_link1"/>
+    <child link="hokuyo_link" />
+  </joint>
+  <gazebo reference="hokuyo_link">
+    <material>Gazebo/Black</material>
+    <turnGravityOff>false</turnGravityOff>
+    <sensor type="ray" name="head_hokuyo_sensor">
+      <pose>${hokuyo_size/2} 0 0 0 0 0</pose>
+      <visualize>false</visualize>
+      <update_rate>40</update_rate>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>720</samples>
+            <resolution>1</resolution>
+            <min_angle>-1.570796</min_angle>
+            <max_angle>1.570796</max_angle>
+          </horizontal>
+        </scan>
+        <range>
+          <min>0.10</min>
+          <max>10.0</max>
+          <resolution>0.001</resolution>
+        </range>
+      </ray>
+      <plugin name="gazebo_ros_head_hokuyo_controller" filename="libgazebo_ros_laser.so">
+        <topicName>/scan</topicName>
+        <frameName>hokuyo_link</frameName>
+      </plugin>
+    </sensor>
+  </gazebo>
+  
+  
+  <!-- Differential drive controller  -->
+  <gazebo>
+    <plugin name="differential_drive_controller" filename="libgazebo_ros_diff_drive.so">
+      <rosDebugLevel>Debug</rosDebugLevel>
+      <publishWheelTF>true</publishWheelTF>
+      <robotNamespace>/</robotNamespace>
+      <publishTf>true</publishTf>
+      <publishWheelJointState>true</publishWheelJointState>
+      <alwaysOn>true</alwaysOn>
+      <updateRate>100.0</updateRate>
+      <leftJoint>front_left_wheel_joint</leftJoint>
+      <rightJoint>front_right_wheel_joint</rightJoint>
+      <wheelSeparation>${2*base_radius}</wheelSeparation>
+      <wheelDiameter>${2*wheel_radius}</wheelDiameter>
+      <broadcastTF>true</broadcastTF>
+      <wheelTorque>30</wheelTorque>
+      <wheelAcceleration>1.8</wheelAcceleration>
+      <commandTopic>/cmd_vel_diff</commandTopic>
+      <odometryFrame>odom</odometryFrame> 
+      <odometryTopic>odom</odometryTopic> 
+      <robotBaseFrame>base_footprint</robotBaseFrame>
+    </plugin>
+
+    <plugin name="p3d_base_controller" filename="libgazebo_ros_p3d.so">
+      <alwaysOn>true</alwaysOn>
+      <updateRate>30.0</updateRate>
+      <!-- root1 changes on 2510 -->
+      <!--bodyName>landing_pad_link</bodyName-->
+      <bodyName>landing_pad_link</bodyName>
+      <topicName>ground_truth/diff</topicName>
+      <gaussianNoise>0.00</gaussianNoise>
+      <!-- root1 changes on 2510 -->
+      <!--frameName>world</frameName-->
+      <frameName>world</frameName>
+      <xyzOffsets>0 0 0</xyzOffsets>
+      <rpyOffsets>0 0 0</rpyOffsets>
+    </plugin>
+
+  </gazebo> 
+
+</robot>
